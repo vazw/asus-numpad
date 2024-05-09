@@ -25,6 +25,7 @@ pub(crate) struct Config {
 
     #[serde(default = "default_numlock")]
     disable_numlock_on_start: bool,
+    #[serde(default = "default_numlock")]
     enable_touch_drag: bool,
 
     #[serde(default)]
