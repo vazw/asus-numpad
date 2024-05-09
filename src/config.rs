@@ -25,6 +25,7 @@ pub(crate) struct Config {
 
     #[serde(default = "default_numlock")]
     disable_numlock_on_start: bool,
+    enable_touch_drag: bool,
 
     #[serde(default)]
     calc_start_command: CustomCommand,
@@ -45,6 +46,9 @@ impl Config {
     /// Get a reference to the config's disable numlock on start.
     pub(crate) fn disable_numlock_on_start(&self) -> bool {
         self.disable_numlock_on_start
+    }
+    pub(crate) fn enable_touch_drag(&self) -> bool {
+        self.enable_touch_drag
     }
 
     /// Get a reference to the config's calc start command.

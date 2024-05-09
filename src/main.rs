@@ -450,6 +450,7 @@ impl Numpad {
         // if the finger drags too much, stop the tap
         // TODO: Use the same logic for numlock bbox instead of `tapped_outside_numlock_bbox`
         if self.state.numlock
+            && self.config.enable_touch_drag()
             && self.state.finger_state == FingerState::Touching
             && self.state.cur_key != CurKey::Calc // we are fine if finger drags on calc box
             && self.state.tap_start_pos.dist_sq(self.state.pos) > Self::TAP_JITTER_DIST
