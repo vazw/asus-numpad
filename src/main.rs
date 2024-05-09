@@ -178,7 +178,7 @@ impl Numpad {
             self.touchpad_i2c.set_brightness(self.state.brightness)?;
             // don't grab touchpad - allow moving pointer even if active
         } else {
-            self.touchpad_i2c.set_brightness(Brightness::Zero)?;
+            self.touchpad_i2c.set_brightness(Brightness::Off)?;
             // we might still be grabbing the touchpad. release it.
             self.ungrab();
         }
@@ -196,10 +196,11 @@ impl Numpad {
             self.state.numlock = false;
             // we might still be grabbing the touchpad. release it.
             self.ungrab();
-            self.touchpad_i2c.set_brightness(Brightness::Zero)
+            self.touchpad_i2c.set_brightness(Brightness::Off)
         } else {
             debug!("Setting numpad on {}", self.state.brightness);
             self.state.numlock = true;
+            self.touchpad_i2c.set_brightness(Brightness::On)?;
             self.touchpad_i2c.set_brightness(self.state.brightness)
         }
         // The numlock has already been toggled on the system- no need to press
