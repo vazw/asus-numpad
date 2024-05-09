@@ -7,15 +7,16 @@ use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Brightness {
-    Zero = 0,
-    Low = 31,
-    Half = 24,
-    Full = 1,
+    Off = 0,
+    On = 1,
+    Low = 0x41,
+    Half = 0x44,
+    Full = 0x48,
 }
 
 impl Default for Brightness {
     fn default() -> Self {
-        Brightness::Full
+        Brightness::On
     }
 }
 
@@ -23,7 +24,8 @@ impl std::fmt::Display for Brightness {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Brightness::*;
         let level = match self {
-            Zero => "Zero",
+            Off => "Off",
+            On => "On",
             Low => "Low",
             Half => "Half",
             Full => "Full",
@@ -36,7 +38,8 @@ impl Brightness {
     fn next(&self) -> Self {
         use Brightness::*;
         match self {
-            Zero => Default::default(), // Jump to default
+            Off => Default::default(), // Jump to default
+            On => Low,
             Low => Half,
             Half => Full,
             Full => Low,
