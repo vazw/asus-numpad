@@ -9,9 +9,9 @@ use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 pub enum Brightness {
     Off = 0,
     On = 1,
-    Low = 0x41,
-    Half = 0x44,
-    Full = 0x48,
+    Low = 65,
+    Half = 68,
+    Full = 72,
 }
 
 impl Default for Brightness {
