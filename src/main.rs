@@ -468,6 +468,7 @@ impl Numpad {
             self.state.finger_dragged_too_much = true;
             self.ungrab();
             self.on_lift();
+            self.dummy_kb.keypress(EV_KEY::KEY_BACKSPACE);
         }
         Ok(())
     }
