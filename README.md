@@ -25,7 +25,10 @@ This builds upon the work done in [asus-touchpad-numpad-driver](https://github.c
 
 ### Compile from source
 * Install the Rust 2021 toolchain using [`Rustup`](https://rustup.rs)
+#### Systemd Service
 * `sudo -E cargo install --root /usr --git="https://github.com/iamkroot/asus-numpad"`
+#### Runit Service
+* `cargo install --git="https://github.com/iamkroot/asus-numpad"`
 
 ## Run
 * `sudo modprobe i2c-dev` and `sudo modprobe uinput`
