@@ -497,24 +497,23 @@ impl Numpad {
                             self.handle_touchpad_event(ev)?;
                         }
                     }
-                    // Disable listening to numlock led
-                    // if fds[1].revents & libc::POLLIN != 0 {
-                    //     while let Ok((_, ev)) = self.keyboard_evdev.next_event(ReadFlag::NORMAL) {
-                    //         // Note: We only listen to the LED event, and not the numlock event.
-                    //         // While most environments keep them in sync, it is technically possible
-                    //         // to change the led state without changing the numlock state.
-                    //         //
-                    //         // But there is no simple way for us to figure out the actual numlock
-                    //         // state. We would need to bring in Xlib (and equivalent for wayland)
-                    //         // and query it to get the numlock state.
-                    //         //
-                    //         // So, we only listen for LED changes, hoping that it reflects numlock state
-                    //         if let EventCode::EV_LED(EV_LED::LED_NUML) = ev.event_code {
-                    //             self.handle_numlock_pressed(ev.value)?;
-                    //         }
-                    //         trace!("KB {}, {}", ev.event_code, ev.value);
-                    //     }
-                    // }
+                    if fds[1].revents & libc::POLLIN != 0 {
+                        while let Ok((_, ev)) = self.keyboard_evdev.next_event(ReadFlag::NORMAL) {
+                            // Note: We only listen to the LED event, and not the numlock event.
+                            // While most environments keep them in sync, it is technically possible
+                            // to change the led state without changing the numlock state.
+                            //
+                            // But there is no simple way for us to figure out the actual numlock
+                            // state. We would need to bring in Xlib (and equivalent for wayland)
+                            // and query it to get the numlock state.
+                            //
+                            // So, we only listen for LED changes, hoping that it reflects numlock state
+                            // if let EventCode::EV_LED(EV_LED::LED_NUML) = ev.event_code {
+                            //     self.handle_numlock_pressed(ev.value)?;
+                            // }
+                            trace!("KB {}, {}", ev.event_code, ev.value);
+                        }
+                    }
                 }
                 // we have only given 2 fds, so max return val of poll can be 2
                 _ => unsafe { unreachable_unchecked() },
