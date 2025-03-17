@@ -289,6 +289,7 @@ impl NumpadLayout {
         )
     }
 
+
     pub fn g533(bbox: BBox) -> Self {
         use EV_KEY::*;
         Self::create(

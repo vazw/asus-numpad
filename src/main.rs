@@ -18,10 +18,10 @@ use crate::touchpad_i2c::{Brightness, TouchpadI2C};
 use crate::util::{CustomDuration, ElapsedSince};
 use anyhow::{Context, Result};
 use evdev_rs::{
-    enums::{EventCode, EV_ABS, EV_KEY, EV_LED, EV_MSC},
-    Device, DeviceWrapper, InputEvent, ReadFlag, TimeVal,
+    enums::{EventCode, EV_ABS, EV_KEY, EV_MSC},
+    Device, InputEvent, ReadFlag, TimeVal,
 };
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum FingerState {
@@ -180,63 +180,76 @@ impl Numpad {
     /// Toggle numlock when user presses the numlock bbox on touchpad.
     fn toggle_numlock(&mut self) -> Result<()> {
         if self.state.toggle_numlock() {
+            self.state.numlock = true;
+            self.touchpad_i2c.set_brightness(Brightness::On)?;
             self.touchpad_i2c.set_brightness(self.state.brightness)?;
             // don't grab touchpad - allow moving pointer even if active
         } else {
-            self.touchpad_i2c.set_brightness(Brightness::Zero)?;
+            self.state.numlock = false;
+            self.touchpad_i2c.set_brightness(Brightness::Off)?;
             // we might still be grabbing the touchpad. release it.
             self.ungrab();
         }
         // Tell the system that we want to toggle the numlock
-        self.dummy_kb.keypress(EV_KEY::KEY_NUMLOCK);
+        // self.dummy_kb.keypress(EV_KEY::KEY_NUMLOCK);
         Ok(())
     }
 
     /// Handle numlock pressed *from an external keyboard*.
     ///
     /// This is to keep the touchpad state in sync with system's numlock.
-    fn handle_numlock_pressed(&mut self, val: i32) -> Result<()> {
-        if val == 0 {
-            debug!("Setting numpad off");
-            self.state.numlock = false;
-            // we might still be grabbing the touchpad. release it.
-            self.ungrab();
-            self.touchpad_i2c.set_brightness(Brightness::Zero)
-        } else {
-            debug!("Setting numpad on {}", self.state.brightness);
-            self.state.numlock = true;
-            self.touchpad_i2c.set_brightness(self.state.brightness)
-        }
-        // The numlock has already been toggled on the system- no need to press
-        // the Num_Lock evkey.
-    }
+    // fn handle_numlock_pressed(&mut self, val: i32) -> Result<()> {
+    //     if val == 0 {
+    //         debug!("setting off");
+    //         self.state.numlock = false;
+    //         // we might still be grabbing the touchpad. release it.
+    //         self.ungrab();
+    //         self.touchpad_i2c.set_brightness(Brightness::Off)
+    //     } else {
+    //         debug!("setting on {}", self.state.brightness);
+    //         self.state.numlock = true;
+    //         self.touchpad_i2c.set_brightness(Brightness::On)?;
+    //         self.touchpad_i2c.set_brightness(self.state.brightness)
+    //     }
+    //     // The numlock has already been toggled on the system- no need to press
+    //     // the Num_Lock evkey.
+    // }
 
     /// Query the initial state of numlock led from the system.
     fn initialize_numlock(&mut self) -> Result<()> {
-        let init_numlock = self
-            .keyboard_evdev
-            .event_value(&EventCode::EV_LED(EV_LED::LED_NUML));
-        match init_numlock {
-            Some(init_numlock) => {
-                if init_numlock != 0 {
-                    if self.config.disable_numlock_on_start() {
-                        self.dummy_kb.keypress(EV_KEY::KEY_NUMLOCK);
-                    } else {
-                        self.handle_numlock_pressed(init_numlock)?;
-                    }
-                }
-            }
-            None => error!(
-                "Failed to get initial numlock state. \
-                There might be something wrong with evdev keyboard detection. \
-                {}",
-                self.keyboard_evdev.name().map_or_else(
-                    || "Unknown device".to_owned(),
-                    |n| format!("Using device: {}", n)
-                )
-            ),
+        if self.config.disable_numlock_on_start() {
+            self.state.numlock = false;
+            self.touchpad_i2c.set_brightness(Brightness::Off)
+        } else {
+            self.state.numlock = true;
+            self.touchpad_i2c.set_brightness(Brightness::On)?;
+            self.touchpad_i2c.set_brightness(self.state.brightness)
         }
-        Ok(())
+        // let init_numlock = self
+        //     .keyboard_evdev
+        //     .event_value(&EventCode::EV_LED(EV_LED::LED_NUML));
+        // match init_numlock {
+        //     Some(init_numlock) => {
+        //         if init_numlock != 0 {
+        //             if self.config.disable_numlock_on_start() {
+        //                 self.handle_numlock_pressed(0)?;
+        //                 // self.dummy_kb.keypress(EV_KEY::KEY_NUMLOCK);
+        //             } else {
+        //                 self.handle_numlock_pressed(init_numlock)?;
+        //             }
+        //         }
+        //     }
+        //     None => error!(
+        //         "Failed to get initial numlock state. \
+        //         There might be something wrong with evdev keyboard detection. \
+        //         {}",
+        //         self.keyboard_evdev.name().map_or_else(
+        //             || "Unknown device".to_owned(),
+        //             |n| format!("Using device: {}", n)
+        //         )
+        //     ),
+        // }
+        // Ok(())
     }
 
     fn grab(&mut self) {
@@ -323,7 +336,6 @@ impl Numpad {
         if self.state.finger_state == FingerState::Touching {
             if let CurKey::Numpad(key) = self.state.cur_key {
                 debug!("Keyup {:?}", key);
-
                 if self.layout.needs_multikey(key) {
                     self.dummy_kb.multi_keyup(&self.layout.multikeys(key));
                 } else {
@@ -351,7 +363,6 @@ impl Numpad {
                     Some(key) => {
                         self.grab();
                         self.state.finger_state = FingerState::Touching;
-
                         debug!("Keydown {:?}", key);
                         if self.layout.needs_multikey(key) {
                             self.dummy_kb.multi_keydown(&self.layout.multikeys(key));
@@ -415,7 +426,6 @@ impl Numpad {
                 if self.state.finger_state == FingerState::TouchStart {
                     trace!("Touch {}", self.state.pos);
                 }
-
                 if self.state.finger_state == FingerState::Touching
                     && !self.state.tapped_outside_numlock_bbox
                 {
@@ -449,6 +459,7 @@ impl Numpad {
         // if the finger drags too much, stop the tap
         // TODO: Use the same logic for numlock bbox instead of `tapped_outside_numlock_bbox`
         if self.state.numlock
+            && self.config.enable_touch_drag()
             && self.state.finger_state == FingerState::Touching
             && self.state.cur_key != CurKey::Calc // we are fine if finger drags on calc box
             && self.state.tap_start_pos.dist_sq(self.state.pos) > Self::TAP_JITTER_DIST
@@ -457,6 +468,7 @@ impl Numpad {
             self.state.finger_dragged_too_much = true;
             self.ungrab();
             self.on_lift();
+            self.dummy_kb.keypress(EV_KEY::KEY_BACKSPACE);
         }
         Ok(())
     }
@@ -497,9 +509,9 @@ impl Numpad {
                             // and query it to get the numlock state.
                             //
                             // So, we only listen for LED changes, hoping that it reflects numlock state
-                            if let EventCode::EV_LED(EV_LED::LED_NUML) = ev.event_code {
-                                self.handle_numlock_pressed(ev.value)?;
-                            }
+                            // if let EventCode::EV_LED(EV_LED::LED_NUML) = ev.event_code {
+                            //     self.handle_numlock_pressed(ev.value)?;
+                            // }
                             trace!("KB {}, {}", ev.event_code, ev.value);
                         }
                     }
