@@ -461,16 +461,13 @@ impl Numpad {
             events: libc::POLLIN,
             revents: 0,
         };
-        let kb_fd = libc::pollfd {
-            fd: self.keyboard_evdev.file().as_raw_fd(),
-            events: if self.config.disable_numpad() {
-                0
-            } else {
-                libc::POLLIN
-            },
-            revents: 0,
-        };
-        let mut fds = [tp_fd, kb_fd];
+        // let kb_fd = libc::pollfd {
+        //     fd: self.keyboard_evdev.file().as_raw_fd(),
+        //     events: libc::POLLIN,
+        //     revents: 0,
+        // };
+        // let mut fds = [tp_fd, kb_fd];
+        let mut fds = [tp_fd];
 
         loop {
             match unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as _, -1) } {
@@ -482,8 +479,8 @@ impl Numpad {
                             self.handle_touchpad_event(ev)?;
                         }
                     }
-                    if fds[1].revents & libc::POLLIN != 0 {
-                        while let Ok((_, ev)) = self.keyboard_evdev.next_event(ReadFlag::NORMAL) {
+                    // if fds[1].revents & libc::POLLIN != 0 {
+                    //     while let Ok((_, ev)) = self.keyboard_evdev.next_event(ReadFlag::NORMAL) {
                             // Note: We only listen to the LED event, and not the numlock event.
                             // While most environments keep them in sync, it is technically possible
                             // to change the led state without changing the numlock state.
@@ -496,9 +493,9 @@ impl Numpad {
                             // if let EventCode::EV_LED(EV_LED::LED_NUML) = ev.event_code {
                             //     self.handle_numlock_pressed(ev.value)?;
                             // }
-                            trace!("KB {}, {}", ev.event_code, ev.value);
-                        }
-                    }
+                        //     trace!("KB {}, {}", ev.event_code, ev.value);
+                        // }
+                    // }
                 }
                 // we have only given 2 fds, so max return val of poll can be 2
                 _ => unsafe { unreachable_unchecked() },
